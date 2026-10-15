@@ -1,0 +1,24 @@
+{
+  "name": "JobPilot AI — Autonomous Job Search Platform",
+  "short_name": "JobPilot AI",
+  "description": "Production-ready autonomous job discovery, truth-grounded resume tailoring, and consent-gated application pipeline.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/vite.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

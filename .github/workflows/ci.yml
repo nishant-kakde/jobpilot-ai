@@ -1,0 +1,67 @@
+name: JobPilot AI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-test:
+    name: Backend Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run Alembic Database Migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
+          PII_ENCRYPTION_KEY: v4kPZ4_JjMhQpT8nO2_s-UaX1f8wR-6vK9yE0zL_3pA=
+        run: |
+          alembic upgrade head
+
+      - name: Run Pytest Test Suite
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
+          PII_ENCRYPTION_KEY: v4kPZ4_JjMhQpT8nO2_s-UaX1f8wR-6vK9yE0zL_3pA=
+        run: |
+          pytest tests/ -v
+
+  frontend-build:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci || npm install
+
+      - name: Build Production PWA Bundle
+        working-directory: frontend
+        run: npm run build
+
+      - name: Verify PWA Manifest & Service Worker Assets
+        run: |
+          test -f frontend/dist/manifest.webmanifest || test -f frontend/public/manifest.webmanifest
+          test -f frontend/dist/sw.js || test -f frontend/public/sw.js

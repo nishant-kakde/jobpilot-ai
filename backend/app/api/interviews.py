@@ -19,7 +19,10 @@ async def list_interviews(
     db: AsyncSession = Depends(get_db)
 ):
     query = select(Interview).where(Interview.user_id == current_user.id).options(
-        selectinload(Interview.application).selectinload(Application.job)
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.analysis),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.saved_entries),
+        selectinload(Interview.application).selectinload(Application.events)
     ).order_by(Interview.scheduled_at.asc())
     res = await db.execute(query)
     return res.scalars().all()
@@ -79,7 +82,10 @@ async def create_interview(
     
     # Reload with relationships
     reload_q = select(Interview).where(Interview.id == interview.id).options(
-        selectinload(Interview.application).selectinload(Application.job)
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.analysis),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.saved_entries),
+        selectinload(Interview.application).selectinload(Application.events)
     )
     reload_res = await db.execute(reload_q)
     return reload_res.scalar_one()
@@ -93,7 +99,10 @@ async def get_interview(
     query = select(Interview).where(
         (Interview.id == id) & (Interview.user_id == current_user.id)
     ).options(
-        selectinload(Interview.application).selectinload(Application.job)
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.analysis),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.saved_entries),
+        selectinload(Interview.application).selectinload(Application.events)
     )
     res = await db.execute(query)
     interview = res.scalar_one_or_none()
@@ -124,8 +133,15 @@ async def update_interview(
     interview.updated_at = datetime.datetime.utcnow()
 
     await db.commit()
-    await db.refresh(interview)
-    return interview
+    
+    reload_q = select(Interview).where(Interview.id == interview.id).options(
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.analysis),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.saved_entries),
+        selectinload(Interview.application).selectinload(Application.events)
+    )
+    reload_res = await db.execute(reload_q)
+    return reload_res.scalar_one()
 
 @router.post("/{id}/generate-prep", response_model=InterviewOut)
 async def regenerate_interview_prep(
@@ -166,8 +182,15 @@ async def regenerate_interview_prep(
     interview.updated_at = datetime.datetime.utcnow()
 
     await db.commit()
-    await db.refresh(interview)
-    return interview
+    
+    reload_q = select(Interview).where(Interview.id == interview.id).options(
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.analysis),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Interview.application).selectinload(Application.job).selectinload(Job.saved_entries),
+        selectinload(Interview.application).selectinload(Application.events)
+    )
+    reload_res = await db.execute(reload_q)
+    return reload_res.scalar_one()
 
 @router.delete("/{id}")
 async def delete_interview(

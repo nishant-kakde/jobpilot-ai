@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { api } from '../../services/api';
 import { DashboardStats } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface DashboardViewProps {
   onNavigate: (tab: string) => void;
@@ -17,11 +18,17 @@ interface DashboardViewProps {
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6'];
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadStats = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       try {
         const data = await api.getDashboardStats();
         setStats(data);
@@ -32,7 +39,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       }
     };
     loadStats();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (

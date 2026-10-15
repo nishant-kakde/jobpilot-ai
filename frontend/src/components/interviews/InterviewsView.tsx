@@ -6,8 +6,10 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Interview, Application } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 export const InterviewsView: React.FC = () => {
+  const { user } = useAuth();
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +30,10 @@ export const InterviewsView: React.FC = () => {
   const [scheduling, setScheduling] = useState(false);
 
   const loadData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [ints, apps] = await Promise.all([
@@ -48,7 +54,7 @@ export const InterviewsView: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user]);
 
   const handleToggleChecklist = async (index: number) => {
     if (!selectedInterview) return;

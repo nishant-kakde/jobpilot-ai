@@ -600,58 +600,230 @@ class AIService:
         }
 
     # ---------------- 7. AI Career Assistant Chat ----------------
-    async def career_chat(self, message: str, profile: Dict[str, Any], job: Optional[Dict[str, Any]] = None, history: List[Dict[str, str]] = []) -> Dict[str, Any]:
+    async def career_chat(
+        self,
+        message: str,
+        profile: Dict[str, Any],
+        job: Optional[Dict[str, Any]] = None,
+        matched_jobs: List[Dict[str, Any]] = [],
+        history: List[Dict[str, str]] = []
+    ) -> Dict[str, Any]:
         """
-        Interactive career counselor and copilot.
+        Interactive career counselor, strategic match analyzer, and interview copilot.
         """
-        msg_lower = message.lower()
+        full_name = profile.get("full_name", "Alex")
+        years_exp = profile.get("years_of_experience", 2.0)
         skills = [s.get("name") if isinstance(s, dict) else str(s) for s in profile.get("skills", [])]
+        msg_lower = message.lower().strip()
 
-        if "score" in msg_lower or "why" in msg_lower and "match" in msg_lower:
-            reply = (
-                f"Your match score is calculated transparently across required technical skills, years of verified experience, "
-                f"education, and location preference. To boost your score for target roles, highlight hands-on projects featuring "
-                f"{', '.join(skills[:3]) if skills else 'key stack tools'} and align your summary directly with the job's core responsibilities."
+        # If external LLM configured, attempt provider call first
+        system_prompt = (
+            "You are JobPilot AI Career Copilot, an elite executive career advisor. "
+            "You speak with concise, high-value, professional clarity. Use bolding, bullet points, and markdown. "
+            "Ground your advice strictly in the candidate's verified skills and actual job openings. "
+            "Return JSON matching: {\"reply\": string, \"action_suggestions\": [string], \"action_type\": string | null}\n"
+            f"Candidate: {full_name} ({years_exp:g} yrs experience)\n"
+            f"Candidate Verified Skills: {', '.join(skills[:10])}\n"
+            f"Focus Job: {json.dumps(job) if job else 'None'}\n"
+            f"Top Matched Jobs: {json.dumps(matched_jobs[:3]) if matched_jobs else 'None'}"
+        )
+        llm_resp = await self._call_llm(system_prompt, message)
+        if llm_resp:
+            try:
+                parsed = json.loads(llm_resp)
+                if "reply" in parsed:
+                    return {
+                        "reply": parsed["reply"],
+                        "action_suggestions": parsed.get("action_suggestions", []),
+                        "action_type": parsed.get("action_type", "analyze_match"),
+                        "data": parsed.get("data")
+                    }
+            except Exception:
+                pass
+
+        # 1. Job search, recommendations, and discovering best matches
+        if any(w in msg_lower for w in ["find", "best job", "recommend", "opportunit", "openings", "roles"]) or ("match" in msg_lower and any(w in msg_lower for w in ["job", "for my", "list", "show", "what", "which"])):
+            lines = [
+                f"### Top Matched Opportunities for {full_name}\n\n"
+                f"Based on your verified master profile ({years_exp:g}+ years experience in **{', '.join(skills[:3]) if skills else 'Software Development'}**), here are your top recommended roles:\n"
+            ]
+            for idx, mj in enumerate(matched_jobs[:4], 1):
+                score = mj.get("overall_score", 85)
+                sal = f" • **Salary**: {mj['salary']}" if mj.get("salary") else ""
+                matched_str = f" • **Matched Skills**: {', '.join(mj['matched_skills'][:4])}" if mj.get("matched_skills") else ""
+                lines.append(
+                    f"{idx}. **{mj['title']}** at **{mj['company']}**\n"
+                    f"   - **Match Score**: **{score:.0f}%** ({mj.get('work_mode', 'Remote')} • {mj.get('location', 'Flexible')}){sal}\n"
+                    f"   - {mj.get('explanation', 'Strong stack synergy with your verified experience.')}{matched_str}\n"
+                )
+
+            lines.append(
+                "**Actionable Next Steps**:\n"
+                "• Select any role in the **Focus Job Context** dropdown above to analyze missing skill gaps or generate tailored ATS resumes.\n"
+                "• Click **Explore Jobs & Matches** below to inspect full job descriptions, ghost job indicators, and apply."
             )
             return {
-                "reply": reply,
-                "action_suggestions": ["Tailor resume for active job", "Analyze missing skills", "Generate cover letter"],
+                "reply": "\n".join(lines),
+                "action_suggestions": [
+                    "Tailor resume for top match",
+                    "Explain why my match score is low",
+                    "Identify missing skills & study roadmap",
+                    "Prepare interview talking points"
+                ],
                 "action_type": "analyze_match"
             }
 
-        if "cover letter" in msg_lower:
-            reply = "I can instantly draft a customized, truthful cover letter for you based on your verified master profile. Would you like me to generate one now?"
-            return {
-                "reply": reply,
-                "action_suggestions": ["Generate cover letter now", "Select different job", "Edit profile"],
-                "action_type": "generate_cover_letter"
-            }
+        # 2. Match score explanation & scoring breakdown
+        if "score" in msg_lower or ("why" in msg_lower and "match" in msg_lower) or "ats score" in msg_lower or "calculate" in msg_lower or "criteria" in msg_lower:
+            focus_str = f" for **{job['title']}** at **{job['company']}**" if job else ""
+            missing_str = ""
+            if job and job.get("missing_skills"):
+                missing_str = f"\n\n**Top Gaps for this Role**: {', '.join(job['missing_skills'][:5])}."
 
-        if "interview" in msg_lower or "question" in msg_lower:
             reply = (
-                "Preparing for interviews requires a mix of technical precision and structured STAR behavioral answers. "
-                "I have prepared common HR, Technical, and Behavioral questions tailored to your profile in the Interviews module."
+                f"### Transparent Match & ATS Scoring Breakdown{focus_str}\n\n"
+                f"Your match score is calculated across four transparent dimensions:\n"
+                f"1. **Core Technical Skills Coverage (40%)**: Compares your verified skills ({', '.join(skills[:4]) if skills else 'tech stack'}) against explicit job requirements.\n"
+                f"2. **Experience & Seniority Alignment (30%)**: Evaluates your {years_exp:g}+ years of verified engineering experience against seniority expectations.\n"
+                f"3. **Education & Foundation (20%)**: Checks degree relevancy and verified background.\n"
+                f"4. **Location & Work Mode (10%)**: Validates remote, hybrid, or regional synergy.{missing_str}\n\n"
+                f"**How to Boost Your Score**:\n"
+                f"• Add tangible impact metrics to your experience bullets in **My Profile**.\n"
+                f"• Bridge missing technical keywords via our personalized study roadmap.\n"
+                f"• Use the **Resume Builder** to generate a single-column, ATS-optimized version tailored to the job description."
             )
             return {
                 "reply": reply,
-                "action_suggestions": ["View interview prep questions", "Practice STAR method answers", "Review checklist"],
+                "action_suggestions": [
+                    "Identify missing skills & study roadmap",
+                    "Find the best jobs for my profile",
+                    "Tailor resume for active job",
+                    "Prepare interview talking points"
+                ],
+                "action_type": "analyze_match"
+            }
+
+        # 3. Missing skills & personalized study roadmap
+        if any(w in msg_lower for w in ["missing", "study", "roadmap", "upskill", "gap", "learn"]):
+            if job and job.get("missing_skills"):
+                key_gaps = job["missing_skills"][:4]
+                role_target = f"for **{job['title']}** at **{job['company']}**"
+            else:
+                key_gaps = [g for g in ["Docker", "Kubernetes", "AWS Cloud", "System Design", "CI/CD & DevOps"] if not any(g.lower() in s.lower() for s in skills)][:3]
+                if not key_gaps:
+                    key_gaps = ["Distributed Systems", "Cloud Infrastructure (AWS/GCP)", "High-Concurrency Caching (Redis)"]
+                role_target = "to target Senior / Lead engineering roles"
+
+            reply = (
+                f"### High-Impact Upskilling Roadmap ({role_target})\n\n"
+                f"Bridging these key technical competencies will maximize your recruiter callback rate:\n"
+                f"• **Priority Focus Areas**: **{', '.join(key_gaps)}**\n\n"
+                f"**Structured 3-Week Proof-of-Work Roadmap**:\n"
+                f"1. **Week 1 (Foundations & Primitives)**: Master core primitives, trade-offs, and failure modes for {key_gaps[0] if key_gaps else 'target stack'}.\n"
+                f"2. **Week 2 (Production Proof-of-Work)**: Build and containerize a functional microservice or pipeline featuring {', '.join(key_gaps[:2])}.\n"
+                f"3. **Week 3 (STAR & Profile Integration)**: Benchmark results, open-source on GitHub, and add a verified metric bullet to your Master Profile (e.g., *'Built resilient {key_gaps[0] if key_gaps else 'data'} pipeline reducing latency by 35%'*).\n\n"
+                f"Once added to your profile, your ATS score and automated match percentage will recalculate immediately."
+            )
+            return {
+                "reply": reply,
+                "action_suggestions": [
+                    "Tailor resume with verified skills",
+                    "Find the best jobs for my profile",
+                    "Prepare interview talking points",
+                    "Explain why my match score is low"
+                ],
                 "action_type": "interview_prep"
             }
 
+        # 4. Interview preparation & STAR method
+        if any(w in msg_lower for w in ["interview", "star", "question", "talking point", "behavioral", "hr", "prep"]):
+            role_str = f" for the **{job['title']}** role at **{job['company']}**" if job else ""
+            reply = (
+                f"### Structured Interview Talking Points & STAR Framework{role_str}\n\n"
+                f"Here is how to deliver compelling responses grounded in your verified experience ({years_exp:g}+ yrs with {', '.join(skills[:3]) if skills else 'modern tech'}):\n\n"
+                f"1. **Technical Architecture Question**: *'Describe a complex system or project you delivered.'*\n"
+                f"   - **Situation**: Contextualize a core engineering or data challenge.\n"
+                f"   - **Task**: The specific scalability or reliability bottleneck you owned.\n"
+                f"   - **Action**: Highlight your hands-on choices using {', '.join(skills[:2]) if skills else 'robust primitives'}, discussing architectural trade-offs.\n"
+                f"   - **Result**: Quantify impact (*e.g., improved query throughput by 40%, zero downtime during cutover*).\n\n"
+                f"2. **Behavioral Question**: *'Tell me about a disagreement over technical direction.'*\n"
+                f"   - Focus on data-driven benchmarking, constructive trade-off documentation, and respectful consensus.\n\n"
+                f"**Next Step**: Visit the **Interviews** module to practice interactive round-by-round checklists and review company-specific technical challenges."
+            )
+            return {
+                "reply": reply,
+                "action_suggestions": [
+                    "Practice STAR method answers",
+                    "Find the best jobs for my profile",
+                    "Tailor resume for a job",
+                    "Explain why my match score is low"
+                ],
+                "action_type": "interview_prep"
+            }
+
+        # 5. Resume optimization & ATS formatting
+        if any(w in msg_lower for w in ["resume", "ats", "tailor", "optimize", "bullet"]):
+            reply = (
+                f"### High-Fidelity ATS Resume Optimization Guidelines\n\n"
+                f"To ensure 100% parse accuracy and top recruiter ranking:\n\n"
+                f"1. **Active Impact Verbs**: Start every bullet with strong engineering verbs (*Engineered, Architected, Accelerated, Reduced, Containerized*) rather than passive phrases (*'Responsible for'*, *'Worked on'*).\n"
+                f"2. **The Google XYZ Formula**: *'Accomplished [X] as measured by [Y] by doing [Z].'* Example: *'Accelerated data ingestion by 45% by implementing asynchronous batching in {skills[0] if skills else 'Python'}.'*\n"
+                f"3. **ATS Machine Readability**: Keep single-column formatting, standard section headers (Summary, Experience, Skills, Education), and zero tables or multi-column grids.\n"
+                f"4. **Exact Keyword Synergy**: Ensure required keywords from the target role appear naturally in your Skills matrix and Experience bullets.\n\n"
+                f"You can use the **Resume Builder** module to generate a tailored, ATS-ready PDF instantly."
+            )
+            return {
+                "reply": reply,
+                "action_suggestions": [
+                    "Open Resume Builder",
+                    "Find the best jobs for my profile",
+                    "Identify missing skills & study roadmap",
+                    "Generate cover letter"
+                ],
+                "action_type": "generate_cover_letter"
+            }
+
+        # 6. Cover letter drafting
+        if any(w in msg_lower for w in ["cover letter", "letter"]):
+            role_info = f" for **{job['title']}** at **{job['company']}**" if job else ""
+            reply = (
+                f"### Strategic Cover Letter Framework{role_info}\n\n"
+                f"An effective modern cover letter should be strictly truthful and concise (3 paragraphs max):\n\n"
+                f"1. **The Hook (Why Them & Why Now)**: Mention a specific engineering accomplishment or product initiative from the company that excites you.\n"
+                f"2. **The Core Proof (Why You)**: Highlight 2 specific achievements from your {years_exp:g}+ years of experience demonstrating mastery of {', '.join(skills[:3]) if skills else 'core stack'}.\n"
+                f"3. **The Close**: Express enthusiasm for contributing to their roadmap and invite a discussion.\n\n"
+                f"Would you like to draft an AI-tailored cover letter in the **Cover Letters / Resumes** module?"
+            )
+            return {
+                "reply": reply,
+                "action_suggestions": [
+                    "Generate cover letter now",
+                    "Tailor resume for top match",
+                    "Find the best jobs for my profile",
+                    "Prepare interview talking points"
+                ],
+                "action_type": "generate_cover_letter"
+            }
+
+        # 7. Default / Freeform Career Inquiry
         reply = (
-            f"Hello! I am your JobPilot AI Career Assistant. I am here to help you match top opportunities, "
-            f"tailor your resume with high ATS fidelity, generate compelling cover letters, and prepare for interviews. "
-            f"How can I assist you right now?"
+            f"### Career Copilot Guidance for {full_name}\n\n"
+            f"You are currently positioned with **{years_exp:g}+ years of experience** specializing in **{', '.join(skills[:4]) if skills else 'Modern Software Development'}**.\n\n"
+            f"Here is what I recommend focusing on to accelerate your career trajectory:\n"
+            f"• **High-Match Discovery**: We currently track active opportunities with match scores up to 92%+ based on your verified stack.\n"
+            f"• **Resume Tailoring**: Use our built-in ATS generator to tailor bullet points to specific role requirements.\n"
+            f"• **Interview Readiness**: Prepare STAR-formatted responses highlighting system scalability and architectural trade-offs.\n\n"
+            f"What specific area would you like to explore?"
         )
         return {
             "reply": reply,
             "action_suggestions": [
                 "Find the best jobs for my profile",
-                "Tailor my resume for a job",
-                "Explain how ATS scoring works",
-                "Prepare for upcoming interviews"
+                "Explain why my match score is low",
+                "Identify missing skills & study roadmap",
+                "Prepare interview talking points"
             ],
-            "action_type": "general_help"
+            "action_type": "analyze_match"
         }
 
 ai_service = AIService()

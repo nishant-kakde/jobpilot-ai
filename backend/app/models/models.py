@@ -68,11 +68,11 @@ class Profile(Base):
 
     # Relationships
     user = relationship("User", back_populates="profile")
-    educations = relationship("Education", back_populates="profile", cascade="all, delete-orphan")
-    experiences = relationship("Experience", back_populates="profile", cascade="all, delete-orphan")
-    skills = relationship("Skill", back_populates="profile", cascade="all, delete-orphan")
-    projects = relationship("Project", back_populates="profile", cascade="all, delete-orphan")
-    certifications = relationship("Certification", back_populates="profile", cascade="all, delete-orphan")
+    educations = relationship("Education", back_populates="profile", cascade="all, delete-orphan", lazy="selectin")
+    experiences = relationship("Experience", back_populates="profile", cascade="all, delete-orphan", lazy="selectin")
+    skills = relationship("Skill", back_populates="profile", cascade="all, delete-orphan", lazy="selectin")
+    projects = relationship("Project", back_populates="profile", cascade="all, delete-orphan", lazy="selectin")
+    certifications = relationship("Certification", back_populates="profile", cascade="all, delete-orphan", lazy="selectin")
 
 class Education(Base):
     __tablename__ = "educations"
@@ -194,9 +194,9 @@ class Job(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # Relationships
-    analysis = relationship("JobAnalysis", back_populates="job", uselist=False, cascade="all, delete-orphan")
-    matches = relationship("JobMatch", back_populates="job", cascade="all, delete-orphan")
-    saved_entries = relationship("SavedJob", back_populates="job", cascade="all, delete-orphan")
+    analysis = relationship("JobAnalysis", back_populates="job", uselist=False, cascade="all, delete-orphan", lazy="selectin")
+    matches = relationship("JobMatch", back_populates="job", cascade="all, delete-orphan", lazy="selectin")
+    saved_entries = relationship("SavedJob", back_populates="job", cascade="all, delete-orphan", lazy="selectin")
     applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")
     cover_letters = relationship("CoverLetter", back_populates="job", cascade="all, delete-orphan")
     resume_versions = relationship("ResumeVersion", back_populates="job")
@@ -342,10 +342,10 @@ class Application(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="applications")
-    job = relationship("Job", back_populates="applications")
+    job = relationship("Job", back_populates="applications", lazy="selectin")
     resume_version = relationship("ResumeVersion", back_populates="applications")
     cover_letter = relationship("CoverLetter", back_populates="applications")
-    events = relationship("ApplicationEvent", back_populates="application", cascade="all, delete-orphan", order_by="ApplicationEvent.created_at.desc()")
+    events = relationship("ApplicationEvent", back_populates="application", cascade="all, delete-orphan", order_by="ApplicationEvent.created_at.desc()", lazy="selectin")
     interviews = relationship("Interview", back_populates="application", cascade="all, delete-orphan")
 
 class ApplicationAnswer(Base):
@@ -400,7 +400,7 @@ class Interview(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="interviews")
-    application = relationship("Application", back_populates="interviews")
+    application = relationship("Application", back_populates="interviews", lazy="selectin")
 
 class Notification(Base):
     __tablename__ = "notifications"

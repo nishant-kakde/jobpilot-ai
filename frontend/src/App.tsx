@@ -15,7 +15,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { Application } from './types';
 
 const MainApp: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -38,6 +38,12 @@ const MainApp: React.FC = () => {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    if (!loading && !user) {
+      setAuthModalOpen(true);
+    }
+  }, [loading, user]);
+
   const handleStartTailoring = (jobId: string) => {
     setSelectedJobIdForTailoring(jobId);
     setCurrentTab('resumes');
@@ -52,6 +58,18 @@ const MainApp: React.FC = () => {
     setActiveAutofillApp(app);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-4">
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <h2 className="text-xl font-bold tracking-tight">JobPilot AI</h2>
+          <p className="text-sm text-slate-400">Initializing your career acceleration telemetry...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex transition-colors duration-200">
       {/* Sidebar */}
@@ -60,6 +78,7 @@ const MainApp: React.FC = () => {
         setCurrentTab={setCurrentTab}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
+        onOpenAuth={() => setAuthModalOpen(true)}
       />
 
       {/* Main Content Area */}

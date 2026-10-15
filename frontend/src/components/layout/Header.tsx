@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { NotificationItem } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   currentTab: string;
@@ -18,12 +19,14 @@ export const Header: React.FC<HeaderProps> = ({
   darkMode,
   setDarkMode
 }) => {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const fetchNotifs = async () => {
+    if (!user) return;
     try {
       const data = await api.listNotifications();
       setNotifications(data);
@@ -33,10 +36,14 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
     fetchNotifs();
     const interval = setInterval(fetchNotifs, 45000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 

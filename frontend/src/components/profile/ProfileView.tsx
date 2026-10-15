@@ -5,8 +5,10 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Profile, Skill, Experience, Education, Project } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 export const ProfileView: React.FC = () => {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +39,10 @@ export const ProfileView: React.FC = () => {
   const [newEdu, setNewEdu] = useState({ institution: '', degree: '', field_of_study: '', start_date: '', end_date: '' });
 
   const loadProfile = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const p = await api.getProfile();
@@ -67,7 +73,7 @@ export const ProfileView: React.FC = () => {
 
   useEffect(() => {
     loadProfile();
-  }, []);
+  }, [user]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

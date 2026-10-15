@@ -10,13 +10,15 @@ interface SidebarProps {
   setCurrentTab: (tab: string) => void;
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
+  onOpenAuth?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   setCurrentTab,
   mobileOpen,
-  setMobileOpen
+  setMobileOpen,
+  onOpenAuth
 }) => {
   const { user, logout } = useAuth();
 
@@ -112,20 +114,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-850">
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-700 text-white font-semibold flex items-center justify-center text-xs shrink-0">
-                {user ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                {user ? user.full_name.charAt(0).toUpperCase() : 'G'}
               </div>
               <div className="truncate">
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{user ? user.full_name : 'Guest User'}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user ? user.email : 'demo@jobpilot.ai'}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user ? user.email : 'Click to Sign In'}</p>
               </div>
             </div>
-            {user && (
+            {user ? (
               <button
                 onClick={logout}
                 title="Log out"
                 className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-md hover:bg-white dark:hover:bg-slate-800 transition"
               >
                 <LogOut className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={onOpenAuth}
+                title="Sign In"
+                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline px-1"
+              >
+                Sign In
               </button>
             )}
           </div>

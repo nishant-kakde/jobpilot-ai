@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Application, Job } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface ApplicationsTrackerViewProps {
   onLaunchAutofill: (app: Application) => void;
@@ -21,6 +22,7 @@ export const ApplicationsTrackerView: React.FC<ApplicationsTrackerViewProps> = (
   onLaunchAutofill,
   onNavigateToJob
 }) => {
+  const { user } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
@@ -35,6 +37,10 @@ export const ApplicationsTrackerView: React.FC<ApplicationsTrackerViewProps> = (
   const [updating, setUpdating] = useState(false);
 
   const fetchApps = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const data = await api.listApplications(statusFilter === 'all' ? undefined : statusFilter, search);
@@ -48,7 +54,7 @@ export const ApplicationsTrackerView: React.FC<ApplicationsTrackerViewProps> = (
 
   useEffect(() => {
     fetchApps();
-  }, [statusFilter]);
+  }, [statusFilter, user]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

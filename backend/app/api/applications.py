@@ -23,7 +23,9 @@ async def list_applications(
     db: AsyncSession = Depends(get_db)
 ):
     query = select(Application).where(Application.user_id == current_user.id).options(
+        selectinload(Application.job).selectinload(Job.analysis),
         selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Application.job).selectinload(Job.saved_entries),
         selectinload(Application.events)
     ).order_by(desc(Application.updated_at))
 
@@ -85,7 +87,9 @@ async def create_application(
     
     # Reload with relationships
     reload_q = select(Application).where(Application.id == new_app.id).options(
-        selectinload(Application.job),
+        selectinload(Application.job).selectinload(Job.analysis),
+        selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Application.job).selectinload(Job.saved_entries),
         selectinload(Application.events)
     )
     reload_res = await db.execute(reload_q)
@@ -100,7 +104,9 @@ async def get_application(
     query = select(Application).where(
         (Application.id == id) & (Application.user_id == current_user.id)
     ).options(
-        selectinload(Application.job),
+        selectinload(Application.job).selectinload(Job.analysis),
+        selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Application.job).selectinload(Job.saved_entries),
         selectinload(Application.events)
     )
     res = await db.execute(query)
@@ -146,8 +152,15 @@ async def update_application(
         db.add(event)
 
     await db.commit()
-    await db.refresh(app)
-    return app
+    
+    reload_q = select(Application).where(Application.id == app.id).options(
+        selectinload(Application.job).selectinload(Job.analysis),
+        selectinload(Application.job).selectinload(Job.matches),
+        selectinload(Application.job).selectinload(Job.saved_entries),
+        selectinload(Application.events)
+    )
+    reload_res = await db.execute(reload_q)
+    return reload_res.scalar_one()
 
 @router.delete("/{id}")
 async def delete_application(

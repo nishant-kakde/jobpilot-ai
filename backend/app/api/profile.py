@@ -36,7 +36,8 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
         profile = Profile(user_id=current_user.id)
         db.add(profile)
         await db.commit()
-        await db.refresh(profile)
+        result = await db.execute(query)
+        profile = result.scalar_one()
     return profile
 
 @router.put("", response_model=ProfileOut)
@@ -63,8 +64,8 @@ async def update_profile(
         setattr(profile, field, val)
 
     await db.commit()
-    await db.refresh(profile)
-    return profile
+    reload_res = await db.execute(query)
+    return reload_res.scalar_one()
 
 # ---- Education ----
 @router.post("/educations", response_model=EducationOut)

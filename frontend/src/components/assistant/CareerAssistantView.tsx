@@ -174,7 +174,11 @@ export const CareerAssistantView: React.FC<CareerAssistantViewProps> = ({ onNavi
                       onClick={() => handleExecuteAction(m.actionType!)}
                       className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition flex items-center gap-1 shadow-sm"
                     >
-                      <span>Jump to Module</span>
+                      <span>
+                        {m.actionType === 'analyze_match' ? 'Explore Jobs & Matches' :
+                         m.actionType === 'generate_cover_letter' ? 'Open Resume Builder' :
+                         m.actionType === 'interview_prep' ? 'Open Interview Studio' : 'Explore Feature'}
+                      </span>
                       <ArrowRight className="w-2.5 h-2.5" />
                     </button>
                   )}

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { MasterResume, ResumeVersion, Job } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface ResumeBuilderViewProps {
   initialJobId?: string | null;
@@ -13,6 +14,7 @@ interface ResumeBuilderViewProps {
 }
 
 export const ResumeBuilderView: React.FC<ResumeBuilderViewProps> = ({ initialJobId }) => {
+  const { user } = useAuth();
   const [masterResumes, setMasterResumes] = useState<MasterResume[]>([]);
   const [tailoredVersions, setTailoredVersions] = useState<ResumeVersion[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -33,6 +35,10 @@ export const ResumeBuilderView: React.FC<ResumeBuilderViewProps> = ({ initialJob
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const loadData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [masters, versions, jobsList] = await Promise.all([
@@ -57,7 +63,7 @@ export const ResumeBuilderView: React.FC<ResumeBuilderViewProps> = ({ initialJob
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (initialJobId) {

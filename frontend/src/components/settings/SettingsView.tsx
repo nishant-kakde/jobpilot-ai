@@ -30,6 +30,10 @@ export const SettingsView: React.FC = () => {
 
   useEffect(() => {
     const loadPref = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         const data = await api.getPreferences();
@@ -49,7 +53,7 @@ export const SettingsView: React.FC = () => {
       }
     };
     loadPref();
-  }, []);
+  }, [user]);
 
   const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();

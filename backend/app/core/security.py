@@ -2,6 +2,7 @@ import uuid
 import datetime
 from typing import Optional, Dict, Any, Tuple
 import jwt
+import bcrypt
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
@@ -20,12 +21,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=Fals
 limiter = Limiter(key_func=get_remote_address, default_limits=[settings.RATE_LIMIT_DEFAULT])
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    if not hashed_password:
+    if not hashed_password or not plain_password:
         return False
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8")[:72], hashed_password.encode("utf-8"))
+    except Exception:
+        try:
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            return False
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[datetime.timedelta] = None) -> str:
     to_encode = data.copy()

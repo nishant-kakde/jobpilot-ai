@@ -37,6 +37,10 @@ class User(Base):
     ai_generations = relationship("AIGenerationLog", back_populates="user", cascade="all, delete-orphan")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user")
+    conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
+    interview_sessions = relationship("InterviewSession", back_populates="user", cascade="all, delete-orphan")
+    career_roadmaps = relationship("CareerRoadmap", back_populates="user", cascade="all, delete-orphan")
+    ai_provider_setting = relationship("AIProviderSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class Profile(Base):
     __tablename__ = "profiles"
@@ -474,3 +478,106 @@ class AuditLog(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
     user = relationship("User", back_populates="audit_logs")
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    job_id = Column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(255), default="Career Advisory Chat")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="conversations")
+    messages = relationship("ConversationMessage", back_populates="conversation", cascade="all, delete-orphan", order_by="ConversationMessage.created_at.asc()", lazy="selectin")
+
+class ConversationMessage(Base):
+    __tablename__ = "conversation_messages"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    conversation_id = Column(String(36), ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String(20), nullable=False)  # user, assistant, system
+    content = Column(Text, nullable=False)
+    provider_used = Column(String(50), nullable=True)
+    model_name = Column(String(100), nullable=True)
+    tokens_used = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    conversation = relationship("Conversation", back_populates="messages")
+
+class InterviewSession(Base):
+    __tablename__ = "interview_sessions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    job_id = Column(String(36), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True)
+    application_id = Column(String(36), ForeignKey("applications.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(255), default="Mock Interview Practice")
+    target_role = Column(String(255), nullable=True)
+    status = Column(String(50), default="in_progress")  # in_progress, completed
+    overall_score = Column(Float, nullable=True)
+    technical_score = Column(Float, nullable=True)
+    communication_score = Column(Float, nullable=True)
+    star_score = Column(Float, nullable=True)
+    feedback_summary = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="interview_sessions")
+    answers = relationship("MockInterviewAnswer", back_populates="session", cascade="all, delete-orphan", order_by="MockInterviewAnswer.created_at.asc()", lazy="selectin")
+
+class MockInterviewAnswer(Base):
+    __tablename__ = "mock_interview_answers"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    session_id = Column(String(36), ForeignKey("interview_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    question = Column(Text, nullable=False)
+    category = Column(String(50), default="Technical")
+    candidate_answer = Column(Text, nullable=False)
+    overall_score = Column(Float, default=0.0)
+    technical_accuracy_score = Column(Float, default=0.0)
+    communication_score = Column(Float, default=0.0)
+    star_framework_score = Column(Float, default=0.0)
+    strengths = Column(JSON, default=list)
+    areas_for_improvement = Column(JSON, default=list)
+    improved_model_answer = Column(Text, nullable=True)
+    actionable_tip = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    session = relationship("InterviewSession", back_populates="answers")
+
+class CareerRoadmap(Base):
+    __tablename__ = "career_roadmaps"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_role = Column(String(255), nullable=False)
+    readiness_score = Column(Float, default=0.0)
+    weekly_hours = Column(Integer, default=10)
+    critical_skill_gaps = Column(JSON, default=list)
+    milestones_30_days = Column(JSON, default=list)
+    milestones_60_days = Column(JSON, default=list)
+    milestones_90_days = Column(JSON, default=list)
+    portfolio_projects = Column(JSON, default=list)
+    interview_readiness_plan = Column(JSON, default=list)
+    progress_percentage = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="career_roadmaps")
+
+class AIProviderSetting(Base):
+    __tablename__ = "ai_provider_settings"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    selected_provider = Column(String(50), default="built-in")
+    openai_model = Column(String(100), default="gpt-4o-mini")
+    gemini_model = Column(String(100), default="gemini-1.5-flash")
+    anthropic_model = Column(String(100), default="claude-3-5-haiku-20241022")
+    custom_api_key_encrypted = Column(EncryptedString(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="ai_provider_setting")

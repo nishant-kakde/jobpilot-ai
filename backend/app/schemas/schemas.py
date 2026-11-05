@@ -560,3 +560,144 @@ class DashboardStats(BaseModel):
     weekly_applications: List[Dict[str, Any]]
     match_score_distribution: List[Dict[str, Any]]
     funnel_stages: List[Dict[str, Any]]
+
+# ----------------- Advanced AI & Copilot Schemas -----------------
+class ConversationMessageCreate(BaseModel):
+    content: str
+
+class ConversationMessageOut(BaseModel):
+    id: str
+    conversation_id: str
+    role: str
+    content: str
+    provider_used: Optional[str] = None
+    model_name: Optional[str] = None
+    tokens_used: int = 0
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ConversationCreate(BaseModel):
+    title: Optional[str] = "Career Advisory Chat"
+    job_id: Optional[str] = None
+
+class ConversationOut(BaseModel):
+    id: str
+    user_id: str
+    job_id: Optional[str] = None
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    messages: List[ConversationMessageOut] = []
+
+    class Config:
+        from_attributes = True
+
+# ----------------- Interactive Mock Interview Studio -----------------
+class MockInterviewAnswerSubmit(BaseModel):
+    question: str
+    candidate_answer: str
+    category: Optional[str] = "Technical"
+
+class MockInterviewAnswerOut(BaseModel):
+    id: str
+    session_id: str
+    question: str
+    category: str
+    candidate_answer: str
+    overall_score: float
+    technical_accuracy_score: float
+    communication_score: float
+    star_framework_score: float
+    strengths: List[str] = []
+    areas_for_improvement: List[str] = []
+    improved_model_answer: Optional[str] = None
+    actionable_tip: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class InterviewSessionCreate(BaseModel):
+    job_id: Optional[str] = None
+    application_id: Optional[str] = None
+    target_role: Optional[str] = "Software Engineer"
+    title: Optional[str] = "Mock Technical & Behavioral Interview"
+
+class InterviewSessionOut(BaseModel):
+    id: str
+    user_id: str
+    job_id: Optional[str] = None
+    application_id: Optional[str] = None
+    title: str
+    target_role: Optional[str] = None
+    status: str
+    overall_score: Optional[float] = None
+    technical_score: Optional[float] = None
+    communication_score: Optional[float] = None
+    star_score: Optional[float] = None
+    feedback_summary: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    answers: List[MockInterviewAnswerOut] = []
+
+    class Config:
+        from_attributes = True
+
+# ----------------- Career Roadmap Schemas -----------------
+class CareerRoadmapCreate(BaseModel):
+    target_role: str
+    weekly_hours: int = 10
+
+class CareerRoadmapOut(BaseModel):
+    id: str
+    user_id: str
+    target_role: str
+    readiness_score: float
+    weekly_hours: int
+    critical_skill_gaps: List[str] = []
+    milestones_30_days: List[Dict[str, Any]] = []
+    milestones_60_days: List[Dict[str, Any]] = []
+    milestones_90_days: List[Dict[str, Any]] = []
+    portfolio_projects: List[Dict[str, Any]] = []
+    interview_readiness_plan: List[str] = []
+    progress_percentage: float = 0.0
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ----------------- AI Provider & Token Analytics Schemas -----------------
+class AIProviderSettingUpdate(BaseModel):
+    selected_provider: str  # built-in, openai, gemini, anthropic
+    openai_model: Optional[str] = "gpt-4o-mini"
+    gemini_model: Optional[str] = "gemini-1.5-flash"
+    anthropic_model: Optional[str] = "claude-3-5-haiku-20241022"
+    custom_api_key: Optional[str] = None
+
+class AIProviderSettingOut(BaseModel):
+    selected_provider: str
+    openai_model: str
+    gemini_model: str
+    anthropic_model: str
+    has_custom_api_key: bool
+    is_active: bool
+
+class AIUsageStatsOut(BaseModel):
+    total_tokens_consumed: int
+    total_estimated_cost_usd: float
+    active_provider: str
+    total_generations_count: int
+    breakdown_by_prompt_type: Dict[str, int]
+    breakdown_by_provider: Dict[str, int]
+
+# ----------------- Semantic Job Search -----------------
+class SemanticJobSearchRequest(BaseModel):
+    query: str
+    limit: Optional[int] = 15
+    location_filter: Optional[str] = None
+    work_mode_filter: Optional[str] = None
+    min_salary: Optional[float] = None
+

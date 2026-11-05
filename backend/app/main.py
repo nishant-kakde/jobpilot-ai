@@ -35,6 +35,8 @@ from app.api.dashboard import router as dashboard_router
 from app.api.notifications import router as notifications_router
 from app.api.scheduled_search import router as scheduled_search_router
 from app.api.settings import router as settings_router
+from app.api.roadmap import router as roadmap_router
+from app.api.ai_analytics import router as ai_analytics_router
 
 async def seed_initial_data():
     """
@@ -435,6 +437,8 @@ app.include_router(dashboard_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
 app.include_router(scheduled_search_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
+app.include_router(roadmap_router, prefix="/api")
+app.include_router(ai_analytics_router, prefix="/api")
 
 @app.get("/api/health")
 async def health_check():

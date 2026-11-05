@@ -327,3 +327,114 @@ export interface DashboardStats {
   match_score_distribution: { bracket: string; count: number }[];
   funnel_stages: { stage: string; count: number }[];
 }
+
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  provider_used?: string;
+  model_name?: string;
+  tokens_used?: number;
+  created_at: string;
+}
+
+export interface Conversation {
+  id: string;
+  user_id: string;
+  job_id?: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages: ConversationMessage[];
+}
+
+export interface MockInterviewAnswer {
+  id: string;
+  session_id: string;
+  question: string;
+  category: string;
+  candidate_answer: string;
+  overall_score: number;
+  technical_accuracy_score: number;
+  communication_score: number;
+  star_framework_score: number;
+  strengths: string[];
+  areas_for_improvement: string[];
+  improved_model_answer?: string;
+  actionable_tip?: string;
+  created_at: string;
+}
+
+export interface InterviewSession {
+  id: string;
+  user_id: string;
+  job_id?: string;
+  application_id?: string;
+  title: string;
+  target_role?: string;
+  status: 'in_progress' | 'completed';
+  overall_score?: number;
+  technical_score?: number;
+  communication_score?: number;
+  star_score?: number;
+  feedback_summary?: string;
+  created_at: string;
+  updated_at: string;
+  answers: MockInterviewAnswer[];
+}
+
+export interface CareerRoadmap {
+  id: string;
+  user_id: string;
+  target_role: string;
+  readiness_score: number;
+  weekly_hours: number;
+  critical_skill_gaps: string[];
+  milestones_30_days: Array<{
+    week: string;
+    focus: string;
+    deliverables: string;
+    recommended_topics: string[];
+  }>;
+  milestones_60_days: Array<{
+    week: string;
+    focus: string;
+    deliverables: string;
+    recommended_topics: string[];
+  }>;
+  milestones_90_days: Array<{
+    week: string;
+    focus: string;
+    deliverables: string;
+    recommended_topics: string[];
+  }>;
+  portfolio_projects: Array<{
+    title: string;
+    description: string;
+    tech_stack: string[];
+    business_impact: string;
+  }>;
+  interview_readiness_plan: string[];
+  progress_percentage: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIProviderSetting {
+  selected_provider: 'built-in' | 'openai' | 'gemini' | 'anthropic';
+  openai_model: string;
+  gemini_model: string;
+  anthropic_model: string;
+  has_custom_api_key: boolean;
+  is_active: boolean;
+}
+
+export interface AIUsageStats {
+  total_tokens_consumed: number;
+  total_estimated_cost_usd: number;
+  active_provider: string;
+  total_generations_count: number;
+  breakdown_by_prompt_type: Record<string, number>;
+  breakdown_by_provider: Record<string, number>;
+}

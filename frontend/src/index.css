@@ -13,13 +13,20 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased;
+  background-color: #F8FAFC;
+  color: #111827;
+  @apply antialiased;
 }
 
-/* Custom Scrollbar */
+.dark body, html.dark body {
+  background-color: #0B1020;
+  color: #F9FAFB;
+}
+
+/* Custom Minimalist Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -27,27 +34,67 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400 dark:bg-slate-600;
+  background: rgba(148, 163, 184, 0.6);
 }
 
-/* Glassmorphism */
+/* Linear & Notion-inspired SaaS Glass and Surfaces */
 .glass-panel {
-  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-sm;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark .glass-panel {
+  background: rgba(17, 24, 39, 0.88);
+  border: 1px solid #1E293B;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
 }
 
 .glass-card {
-  @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.glass-card:hover {
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06);
+}
+
+.dark .glass-card {
+  background-color: #151E30;
+  border: 1px solid #1E293B;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.dark .glass-card:hover {
+  border-color: rgba(99, 91, 255, 0.3);
+  box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.45);
+}
+
+/* Primary Button Styling */
+.btn-primary {
+  @apply bg-[#635BFF] hover:bg-[#5248E2] dark:bg-[#635BFF] dark:hover:bg-[#5248E2] text-white font-semibold transition-all duration-150 shadow-sm shadow-[#635BFF]/25 active:scale-[0.98];
+}
+
+/* Linear-style subtle gradient accents */
 .gradient-brand {
-  @apply bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-700 text-white;
+  background: linear-gradient(135deg, #635BFF 0%, #8B7CFF 100%);
 }
 
 .gradient-glow {
-  background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent 40%),
-              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.1), transparent 35%);
+  background: radial-gradient(circle at top right, rgba(99, 91, 255, 0.12), transparent 45%),
+              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.08), transparent 40%);
 }

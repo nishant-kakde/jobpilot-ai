@@ -407,3 +407,136 @@ async def match_job_for_user(
     await db.commit()
     await db.refresh(match_rec)
     return match_rec
+
+# ----------------- Semantic Job Search & Recommendations -----------------
+
+from app.schemas.schemas import SemanticJobSearchRequest
+from app.ai.embeddings import embedding_engine
+
+@router.post("/semantic-search", response_model=List[JobOut])
+async def semantic_job_search(
+    req: SemanticJobSearchRequest,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Performs natural language semantic search across job postings using vector embeddings.
+    Combines semantic relevance ranking with structured metadata filters.
+    """
+    q = select(Job).options(
+        selectinload(Job.analysis),
+        selectinload(Job.matches),
+        selectinload(Job.saved_entries)
+    ).where(Job.is_active == True)
+
+    if req.work_mode_filter:
+        q = q.where(Job.work_mode.ilike(f"%{req.work_mode_filter}%"))
+    if req.location_filter:
+        q = q.where(Job.location.ilike(f"%{req.location_filter}%"))
+    if req.min_salary:
+        q = q.where((Job.salary_max >= req.min_salary) | (Job.salary_min >= req.min_salary))
+
+    res = await db.execute(q)
+    jobs = res.scalars().all()
+
+    if not jobs:
+        return []
+
+    # Prepare document text corpus for semantic ranking
+    doc_dicts = []
+    for j in jobs:
+        req_skills = j.analysis.required_skills if j.analysis else []
+        combined_text = f"{j.title} at {j.company}. Location: {j.location}. Work mode: {j.work_mode}. Skills: {', '.join(req_skills)}. {j.raw_description[:1000]}"
+        doc_dicts.append({
+            "job_obj": j,
+            "text": combined_text
+        })
+
+    # Rank documents with EmbeddingEngine
+    ranked_docs = embedding_engine.rank_documents(
+        query=req.query,
+        documents=doc_dicts,
+        text_key="text",
+        top_k=req.limit or 15
+    )
+
+    results: List[JobOut] = []
+    for item in ranked_docs:
+        job = item["job_obj"]
+        is_saved = False
+        user_match = None
+        if current_user:
+            is_saved = any(s.user_id == current_user.id for s in job.saved_entries)
+            user_match = next((m for m in job.matches if m.user_id == current_user.id), None)
+
+        results.append(JobOut(
+            id=job.id,
+            title=job.title,
+            company=job.company,
+            location=job.location,
+            work_mode=job.work_mode,
+            job_type=job.job_type,
+            salary_min=job.salary_min,
+            salary_max=job.salary_max,
+            salary_currency=job.salary_currency,
+            raw_description=job.raw_description,
+            original_url=job.original_url,
+            job_source=job.job_source,
+            external_id=job.external_id,
+            is_active=job.is_active,
+            date_posted=job.date_posted,
+            created_at=job.created_at,
+            is_saved=is_saved,
+            analysis=JobAnalysisOut.model_validate(job.analysis) if job.analysis else None,
+            match=JobMatchOut.model_validate(user_match) if user_match else None
+        ))
+
+    return results
+
+@router.get("/recommendations/personalized", response_model=List[JobOut])
+async def get_personalized_recommendations(
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Returns AI-curated personalized job recommendations with transparent compatibility rationale.
+    """
+    # Fetch top matched jobs
+    matches_q = (
+        select(JobMatch, Job)
+        .join(Job, JobMatch.job_id == Job.id)
+        .where(JobMatch.user_id == current_user.id)
+        .options(selectinload(Job.analysis), selectinload(Job.saved_entries))
+        .order_by(desc(JobMatch.overall_score))
+        .limit(limit)
+    )
+    matches_res = await db.execute(matches_q)
+    rows = matches_res.all()
+
+    results: List[JobOut] = []
+    for match, job in rows:
+        is_saved = any(s.user_id == current_user.id for s in job.saved_entries)
+        results.append(JobOut(
+            id=job.id,
+            title=job.title,
+            company=job.company,
+            location=job.location,
+            work_mode=job.work_mode,
+            job_type=job.job_type,
+            salary_min=job.salary_min,
+            salary_max=job.salary_max,
+            salary_currency=job.salary_currency,
+            raw_description=job.raw_description,
+            original_url=job.original_url,
+            job_source=job.job_source,
+            external_id=job.external_id,
+            is_active=job.is_active,
+            date_posted=job.date_posted,
+            created_at=job.created_at,
+            is_saved=is_saved,
+            analysis=JobAnalysisOut.model_validate(job.analysis) if job.analysis else None,
+            match=JobMatchOut.model_validate(match)
+        ))
+
+    return results

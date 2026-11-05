@@ -546,5 +546,154 @@ export const api = {
       headers: { ...getAuthHeader() }
     });
     return handleResponse(res);
+  },
+
+  // ---------------- Advanced AI Engine Integrations ----------------
+
+  // Semantic Search & Recommendations
+  async semanticJobSearch(query: string, filters: { work_mode_filter?: string; location_filter?: string; min_salary?: number; limit?: number } = {}) {
+    const res = await fetch(`${API_BASE}/jobs/semantic-search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ query, ...filters })
+    });
+    return handleResponse<Job[]>(res);
+  },
+
+  async getPersonalizedRecommendations(limit: number = 10): Promise<Job[]> {
+    const res = await fetch(`${API_BASE}/jobs/recommendations/personalized?limit=${limit}`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<Job[]>(res);
+  },
+
+  // Career Copilot Conversations
+  async listConversations() {
+    const res = await fetch(`${API_BASE}/assistant/conversations`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any[]>(res);
+  },
+
+  async createConversation(title?: string, jobId?: string) {
+    const res = await fetch(`${API_BASE}/assistant/conversations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ title, job_id: jobId })
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getConversation(id: string) {
+    const res = await fetch(`${API_BASE}/assistant/conversations/${id}`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any>(res);
+  },
+
+  async sendConversationMessage(conversationId: string, content: string) {
+    const res = await fetch(`${API_BASE}/assistant/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ content })
+    });
+    return handleResponse<any>(res);
+  },
+
+  // Mock Interview Studio
+  async listInterviewSessions() {
+    const res = await fetch(`${API_BASE}/interviews/sessions/all`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any[]>(res);
+  },
+
+  async createInterviewSession(data: { job_id?: string; target_role?: string; title?: string }) {
+    const res = await fetch(`${API_BASE}/interviews/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify(data)
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getInterviewSession(id: string) {
+    const res = await fetch(`${API_BASE}/interviews/sessions/${id}`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any>(res);
+  },
+
+  async evaluateMockAnswer(sessionId: string, data: { question: string; candidate_answer: string; category?: string }) {
+    const res = await fetch(`${API_BASE}/interviews/sessions/${sessionId}/evaluate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify(data)
+    });
+    return handleResponse<any>(res);
+  },
+
+  async completeInterviewSession(sessionId: string) {
+    const res = await fetch(`${API_BASE}/interviews/sessions/${sessionId}/complete`, {
+      method: 'POST',
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any>(res);
+  },
+
+  // Career Roadmaps
+  async listRoadmaps() {
+    const res = await fetch(`${API_BASE}/roadmap`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any[]>(res);
+  },
+
+  async generateRoadmap(targetRole: string, weeklyHours: number = 10) {
+    const res = await fetch(`${API_BASE}/roadmap/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ target_role: targetRole, weekly_hours: weeklyHours })
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getRoadmap(id: string) {
+    const res = await fetch(`${API_BASE}/roadmap/${id}`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any>(res);
+  },
+
+  async updateRoadmapProgress(id: string, progressPercentage: number) {
+    const res = await fetch(`${API_BASE}/roadmap/${id}/progress?progress_percentage=${progressPercentage}`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any>(res);
+  },
+
+  // AI Configuration & Analytics
+  async getAISettings() {
+    const res = await fetch(`${API_BASE}/ai/settings`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any>(res);
+  },
+
+  async updateAISettings(data: { selected_provider: string; openai_model?: string; gemini_model?: string; anthropic_model?: string; custom_api_key?: string }) {
+    const res = await fetch(`${API_BASE}/ai/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify(data)
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getAIUsageStats() {
+    const res = await fetch(`${API_BASE}/ai/usage`, {
+      headers: { ...getAuthHeader() }
+    });
+    return handleResponse<any>(res);
   }
 };

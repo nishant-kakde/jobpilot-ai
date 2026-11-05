@@ -35,10 +35,11 @@ jobs:
       - name: Run Pytest Test Suite
         working-directory: backend
         env:
+          PYTHONPATH: .
           DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
           PII_ENCRYPTION_KEY: v4kPZ4_JjMhQpT8nO2_s-UaX1f8wR-6vK9yE0zL_3pA=
         run: |
-          pytest tests/ -v
+          python -m pytest tests/ -v
 
   frontend-build:
     name: Frontend Lint & Build
